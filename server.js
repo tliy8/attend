@@ -83,7 +83,28 @@ app.post("/mark-attendance", async (req, res) => {
     }
 });
 
+app.get("/alluser",async(req,res)=>{
+    try{
+        const allUsers = await User.find({});
+        const allAttendance = await Attendance.find({});
+        const data = allUsers.map((user)=>{
+            const userAttendance = allAttendance
+            .filter((record)=>record.id === user.id)
+            .map((rec)=>rec.date);
 
+            return {
+                id: user.id,
+                name: user.name,
+                attendance: userAttendance,
+              };
+        });
+        res.json(data);
+    }catch(err){
+        res.status(500).json({ error: "Failed to fetch data" });
+
+
+    }
+})
 // Get Absentees
 app.get("/absentees", async (req, res) => {
     const today = new Date().toISOString().split("T")[0];
@@ -101,7 +122,7 @@ app.get("/absentees", async (req, res) => {
 // Generate today's QR code
 app.get("/generate-qr", async (req, res) => {
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD format
-    const qrText = `http://localhost:3000/attendance?code=${today}`; // Ensure this is backticks (`)
+    const qrText = `https://attendfe-j1j4.vercel.app/attendance?code=${today}`; // Ensure this is backticks (`)
 
     console.log("Generated QR URL:", qrText); // Debugging log
 
