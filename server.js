@@ -82,6 +82,17 @@ app.post("/mark-attendance", async (req, res) => {
         return res.status(500).json({ msg: "Internal server error" });
     }
 });
+app.get('/user', async (req, res) => {
+    try {
+      const users = await User.find({});          // fetch all users
+      return res.status(200).json({ users });      // send back JSON { users: [...] }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      return res
+        .status(500)
+        .json({ error: 'Failed to fetch users', details: err.message });
+    }
+  });
 
 app.get("/alluser",async(req,res)=>{
     try{
@@ -133,7 +144,28 @@ app.get("/generate-qr", async (req, res) => {
         res.status(500).json({ error: "Error generating QR code" });
     }
 });
-
+app.put("/user/:id",async(req,res)=>{
+    try{
+        const user = await User.findOneAndUpdate(
+            {id:req.params.id},
+        req.body,
+        {new:true}
+        );
+        if(!user)return res.status(400).json({message:"User not found"});
+        res.json(user);
+    }catch(err){
+        res.status(500).json({error:err.message});
+    }
+})
+app.delete("/user/:id", async (req, res) => {
+    try {
+        const user = await User.findOneAndDelete({ id: req.params.id });
+        if (!user) return res.status(404).json({ message: "User not found" });
+        res.json({ message: "User deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.post("/admin/login", async (req, res) => {
     const { username, password } = req.body;
@@ -156,6 +188,31 @@ app.post("/admin/login", async (req, res) => {
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+app.get("/students-history", async (req, res) => {
+    const { year } = req.query;
+    try {
+        const users = await User.find(year && year !== "ALL" ? { year } : {});
+        const attendances = await Attendance.find();
+
+        const data = users.map((user) => {
+            const userAttendance = attendances
+                .filter((record) => record.id === user.id)
+                .map((rec) => rec.date);
+
+            return {
+                id: user.id,
+                name: user.name,
+                year: user.year,
+                attendance: userAttendance,
+            };
+        });
+
+        res.json(data);
+    } catch (err) {
+        console.error("Failed to fetch filtered student history:", err);
+        res.status(500).json({ error: "Server error fetching student history" });
     }
 });
 
